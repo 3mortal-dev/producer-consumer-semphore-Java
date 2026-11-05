@@ -5,4 +5,4 @@
 - [x] replace `tryAcquire()` with the Producer-consumer **patients and doctors**
 - [x] Logs
 - [x] Review
-- [ ] Push on github
+- [x] Push on github
