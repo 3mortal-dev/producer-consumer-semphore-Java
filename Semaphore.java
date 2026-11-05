@@ -20,10 +20,12 @@ public class Semaphore extends Thread {
     // in this particular function only we used <= not < only
     // because we can't decreament the process untill we know wheter to acquire or not
     while (process <= 0) {
-      if (deadline - System.currentTimeMillis() <= 0) {
+      Long remaining = deadline - System.currentTimeMillis();
+      if (remaining <= 0) {
         return false;
       }
 
+      wait(remaining); // so it actually waits the 3 seconds
     }
     process--;
     return true;
