@@ -1,5 +1,5 @@
 - [x] Implement TreatmentRooms
-- [ ] Implement Hospital class
+- [x] Implement Hospital class
 - [x] Implement Doctor's Overrided run method
 - [x] Implement `tryAcquire()` method
 - [x] replace `tryAcquire()` with the Producer-consumer **patients and doctors**
