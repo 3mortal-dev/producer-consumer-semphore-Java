@@ -37,7 +37,7 @@ public class Doctor extends Thread {
         }
         // if the doctor couldn't get a room under 3 seconds
         else {
-          System.out.println(this + "couldn't acquire a treatement room");
+          System.out.println(this + " couldn't acquire a treatement room");
           System.out.println(this + " is sending " + p + " back to the waiting room");
           p.release();
           System.out.println(this + " is now available");

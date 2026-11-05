@@ -1,4 +1,4 @@
-public class Semaphore extends Thread {
+public class Semaphore{
 
   private Integer process = 0;
 
@@ -39,7 +39,7 @@ public class Semaphore extends Thread {
   // }
 
     public synchronized void acquire() throws InterruptedException {
-    while (process < 0) {
+    while (process <= 0) {
       wait();
     }
     process--;

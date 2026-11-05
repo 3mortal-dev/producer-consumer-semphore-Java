@@ -51,11 +51,15 @@ public class Hospital {
     Random random = new Random();
     for (Patient p : patients) {
       p.start();
-      Thread.sleep(200 + random.nextInt(600));
+      Thread.sleep(100 + random.nextInt(300));
     }
 
     for (Patient p : patients) {
       p.join();
+    }
+
+    for (Doctor d : doctors) {
+      d.interrupt();
     }
 
     for (Doctor d : doctors) {
