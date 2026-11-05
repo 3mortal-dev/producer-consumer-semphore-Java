@@ -5,6 +5,7 @@ public class WaitingRoom {
   private Queue<Patient> patients = new LinkedList<>();
   private Semaphore empty;
   private Semaphore full = new Semaphore(0); // indicates the doctors
+
   public WaitingRoom(Integer capacity) {
     this.empty = new Semaphore(capacity);
   }
@@ -16,8 +17,14 @@ public class WaitingRoom {
   // Don't sync it because it'll cause a deadlock
   // because if the room is empty and some patient tries to acquire, it'll sleep and also take the waitingRoom object to the critical section and no one will be able to access it .__.
   public void produce(Patient p) throws InterruptedException{
-    empty.acquire(); // patient try to enter the room
+    // patient try to enter the room
+    if (empty.getProcess() <= 0) {  // if the room is full
+      // TODO: room is full
+      // TODO: patient is waiting outside
+      empty.acquire();  
+      }
     this.addPatient(p);
+    // TODO: patient entered the waiting room
     full.release(); // notify the doctors that a patient has come
   }
 
