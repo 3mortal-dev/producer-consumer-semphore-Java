@@ -1,7 +1,8 @@
 - [x] Implement TreatmentRooms
 - [ ] Implement Hospital class
 - [ ] Implement Doctor's Overrided run method
-- [ ] Implement `tryAcquire()` method and replace it with the Producer-consumer **patients and doctors**
+- [x] Implement `tryAcquire()` method
+- [ ] replace `tryAcquire()` with the Producer-consumer **patients and doctors**
 - [ ] Logs
 - [ ] Review
 - [ ] Push on github
