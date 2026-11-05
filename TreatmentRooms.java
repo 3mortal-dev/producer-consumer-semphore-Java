@@ -14,6 +14,11 @@ public class TreatmentRooms {
     rooms.acquire();
   }
 
+  
+  public Boolean tryAcquire(Integer time) throws InterruptedException {
+    return rooms.tryAcquire(time);
+  }
+
   public void release() {
     rooms.release();
   }

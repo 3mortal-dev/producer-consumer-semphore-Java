@@ -1,9 +1,13 @@
 public class Semaphore extends Thread {
 
-  private int process = 0;
+  private Integer process = 0;
 
   protected Semaphore(int value) {
     process = value;
+  }
+
+  public Integer getProcess() {
+    return process;
   }
 
   public synchronized boolean tryAcquire(Integer time) throws InterruptedException {
