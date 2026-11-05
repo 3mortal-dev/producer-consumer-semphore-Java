@@ -17,9 +17,7 @@ public class Semaphore extends Thread {
     // loop till the period ends, if a you got a place then break the while loop,
     // if not, then return false
     //
-    // in this particular function only we used <= not < only
-    // because we can't decreament the process untill we know wheter to acquire or not
-    while (process <= 0) {
+   while (process <= 0) {
       Long remaining = deadline - System.currentTimeMillis();
       if (remaining <= 0) {
         return false;
@@ -31,11 +29,20 @@ public class Semaphore extends Thread {
     return true;
   }
 
-  public synchronized void acquire() throws InterruptedException {
-    process--;
+  // That made the first patient to wait to the last doctor then infinite loops right after the first patient leave
+  // Because the `full` semaphore's value becomes negative and sleeps for ever
+  // public synchronized void acquire() throws InterruptedException {
+  //   process--;
+  //   while (process < 0) {
+  //     wait();
+  //   }
+  // }
+
+    public synchronized void acquire() throws InterruptedException {
     while (process < 0) {
       wait();
     }
+    process--;
   }
 
   public synchronized void release() {
