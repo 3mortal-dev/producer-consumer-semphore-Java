@@ -13,7 +13,7 @@ public class Semaphore extends Thread {
     }
   }
 
-  public synchronized void signal() {
+  public synchronized void release() {
     process++;
     notify();
   }
