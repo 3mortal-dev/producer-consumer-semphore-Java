@@ -20,25 +20,27 @@ public class Doctor extends Thread {
     try {
       while (true) {
         Patient p = waitingRoom.consume();
-        // TODO: assign the doctor to the patient
-        // TODO: try to acquire
+
+        System.out.println(this + " is assigned to " + p);
+        System.out.println(this + " is trying to acquire a treatement room ");
+
         if (treatmentRooms.tryAcquire(ROOM_TIMEOUT)) {
-          // TODO: treatment acquired
-          // TODO: treatment start
+          System.out.println(this + " acquired a treatement room");
+          System.out.println(this + " begins treating " + p);
           Thread.sleep(new Random().nextInt(MAX_TREATMENT - MIN_TREATMENT + 1) + MIN_TREATMENT);
-          // TODO: treatment end
+          System.out.println(this + " finished treating " + p);
           treatmentRooms.release();
-          // TODO: release room
+          System.out.println(this + " released the treatment room");
           p.setIsTreated(true);
           p.release();
-          // TODO: Dr. is available
+          System.out.println(this + " is now available");
         }
         // if the doctor couldn't get a room under 3 seconds
         else {
-          // TODO: couldn't acquire a room
-          // TODO: release the patient with isTreated still false
+          System.out.println(this + "couldn't acquire a treatement room");
+          System.out.println(this + " is sending " + p + " back to the waiting room");
           p.release();
-          // TODO: Dr. is available
+          System.out.println(this + " is now available");
         }
 
       }

@@ -3,6 +3,6 @@
 - [x] Implement Doctor's Overrided run method
 - [x] Implement `tryAcquire()` method
 - [x] replace `tryAcquire()` with the Producer-consumer **patients and doctors**
-- [ ] Logs
+- [x] Logs
 - [ ] Review
 - [ ] Push on github

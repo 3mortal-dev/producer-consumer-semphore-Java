@@ -19,12 +19,12 @@ public class WaitingRoom {
   public void produce(Patient p) throws InterruptedException{
     // patient try to enter the room
     if (empty.getProcess() <= 0) {  // if the room is full
-      // TODO: room is full
-      // TODO: patient is waiting outside
+      System.out.println("The waiting room is full");
+      System.out.println(p + " is waiting outside for an avilable seat");
       empty.acquire();  
       }
     this.addPatient(p);
-    // TODO: patient entered the waiting room
+    System.out.println(p + " entered the waiting room");
     full.release(); // notify the doctors that a patient has come
   }
 
