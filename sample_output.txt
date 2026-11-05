@@ -1,0 +1,158 @@
+Waiting room capacity: 
+6
+Number of doctors: 
+4
+Number of patients: 
+12
+
+Patients arriving:
+P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 P12 
+P1 arrived
+P1 entered the waiting room
+Doctor1 is assigned to P1
+Doctor1 is trying to acquire a treatment room 
+Doctor1 acquired a treatment room
+Doctor1 begins treating P1
+P2 arrived
+P2 entered the waiting room
+Doctor2 is assigned to P2
+Doctor2 is trying to acquire a treatment room 
+Doctor2 acquired a treatment room
+Doctor2 begins treating P2
+P3 arrived
+P3 entered the waiting room
+Doctor3 is assigned to P3
+Doctor3 is trying to acquire a treatment room 
+P4 arrived
+P4 entered the waiting room
+Doctor4 is assigned to P4
+Doctor4 is trying to acquire a treatment room 
+P5 arrived
+P5 entered the waiting room
+P6 arrived
+P6 entered the waiting room
+P7 arrived
+P7 entered the waiting room
+P8 arrived
+P8 entered the waiting room
+P9 arrived
+P9 entered the waiting room
+P10 arrived
+P10 entered the waiting room
+Doctor2 finished treating P2
+Doctor3 acquired a treatment room
+Doctor2 released the treatment room
+Doctor3 begins treating P3
+Doctor2 is now available
+P2 left
+Doctor2 is assigned to P5
+Doctor2 is trying to acquire a treatment room 
+P11 arrived
+P11 entered the waiting room
+P12 arrived
+The waiting room is full
+P12 is waiting outside for an avilable seat
+Doctor1 finished treating P1
+Doctor1 released the treatment room
+Doctor4 acquired a treatment room
+Doctor1 is now available
+P1 left
+Doctor1 is assigned to P6
+P12 entered the waiting room
+Doctor4 begins treating P4
+Doctor1 is trying to acquire a treatment room 
+Doctor3 finished treating P3
+Doctor3 released the treatment room
+Doctor2 acquired a treatment room
+P3 left
+Doctor3 is now available
+Doctor2 begins treating P5
+Doctor3 is assigned to P7
+Doctor3 is trying to acquire a treatment room 
+Doctor1 couldn't acquire a treatment room
+Doctor1 is sending P6 back to the waiting room
+Doctor1 is now available
+P6 entered the waiting room
+Doctor1 is assigned to P8
+Doctor1 is trying to acquire a treatment room 
+Doctor4 finished treating P4
+Doctor4 released the treatment room
+Doctor3 acquired a treatment room
+Doctor3 begins treating P7
+Doctor4 is now available
+P4 left
+Doctor4 is assigned to P9
+Doctor4 is trying to acquire a treatment room 
+Doctor2 finished treating P5
+Doctor2 released the treatment room
+Doctor2 is now available
+Doctor1 acquired a treatment room
+Doctor2 is assigned to P10
+Doctor2 is trying to acquire a treatment room 
+P5 left
+Doctor1 begins treating P8
+Doctor4 couldn't acquire a treatment room
+Doctor4 is sending P9 back to the waiting room
+Doctor4 is now available
+P9 entered the waiting room
+Doctor4 is assigned to P11
+Doctor4 is trying to acquire a treatment room 
+Doctor3 finished treating P7
+Doctor3 released the treatment room
+Doctor2 acquired a treatment room
+Doctor3 is now available
+P7 left
+Doctor2 begins treating P10
+Doctor3 is assigned to P12
+Doctor3 is trying to acquire a treatment room 
+Doctor1 finished treating P8
+Doctor1 released the treatment room
+Doctor4 acquired a treatment room
+Doctor4 begins treating P11
+Doctor1 is now available
+P8 left
+Doctor1 is assigned to P6
+Doctor1 is trying to acquire a treatment room 
+Doctor3 couldn't acquire a treatment room
+Doctor3 is sending P12 back to the waiting room
+Doctor3 is now available
+P12 entered the waiting room
+Doctor3 is assigned to P9
+Doctor3 is trying to acquire a treatment room 
+Doctor2 finished treating P10
+Doctor2 released the treatment room
+Doctor1 acquired a treatment room
+Doctor2 is now available
+Doctor2 is assigned to P12
+Doctor2 is trying to acquire a treatment room 
+P10 left
+Doctor1 begins treating P6
+Doctor4 finished treating P11
+Doctor4 released the treatment room
+Doctor4 is now available
+P11 left
+Doctor3 acquired a treatment room
+Doctor3 begins treating P9
+Doctor2 couldn't acquire a treatment room
+Doctor2 is sending P12 back to the waiting room
+Doctor2 is now available
+P12 entered the waiting room
+Doctor4 is assigned to P12
+Doctor4 is trying to acquire a treatment room 
+Doctor1 finished treating P6
+Doctor1 released the treatment room
+Doctor4 acquired a treatment room
+Doctor1 is now available
+P6 left
+Doctor4 begins treating P12
+Doctor3 finished treating P9
+Doctor3 released the treatment room
+Doctor3 is now available
+P9 left
+Doctor4 finished treating P12
+Doctor4 released the treatment room
+Doctor4 is now available
+P12 left
+All patients have been treated.
+Simulation completed.
+
