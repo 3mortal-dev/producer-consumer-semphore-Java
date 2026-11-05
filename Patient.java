@@ -3,6 +3,7 @@ public class Patient extends Thread {
   private final Integer id;
   private final WaitingRoom waitingRoom;
   private volatile Boolean isTreated = false;
+  private final Semaphore treat = new Semaphore(0);
 
   public Patient(Integer id, WaitingRoom waitingRoom) {
     this.id = id;
@@ -11,8 +12,19 @@ public class Patient extends Thread {
 
   @Override
   public void run() {
-    // TODO Auto-generated method stub
-    super.run();
+    try {
+      // arrive
+      while (true) {
+        waitingRoom.produce(this);
+        treat.acquire(); // wait till a doctor comes
+        if (isTreated) {
+          break;
+        }
+      }
+      // left
+    } catch (Exception e) {
+      Thread.currentThread().interrupt();
+    }
   }
 
   public Integer getPId() {
@@ -21,6 +33,11 @@ public class Patient extends Thread {
 
   public Boolean getIsTreated() {
     return isTreated;
+  }
+
+  // so the doctor can release if he's treated successfully
+  public void release() {
+    treat.release();
   }
 
   @Override
