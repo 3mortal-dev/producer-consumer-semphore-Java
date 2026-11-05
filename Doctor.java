@@ -27,9 +27,10 @@ public class Doctor extends Thread {
           // TODO: treatment start
           Thread.sleep(new Random().nextInt(MAX_TREATMENT - MIN_TREATMENT + 1) + MIN_TREATMENT);
           // TODO: treatment end
+          treatmentRooms.release();
+          // TODO: release room
           p.setIsTreated(true);
           p.release();
-          // TODO: release room
           // TODO: Dr. is available
         }
         // if the doctor couldn't get a room under 3 seconds
