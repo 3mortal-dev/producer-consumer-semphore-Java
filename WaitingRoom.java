@@ -18,7 +18,7 @@ public class WaitingRoom {
   // because if the room is empty and some patient tries to acquire, it'll sleep and also take the waitingRoom object to the critical section and no one will be able to access it .__.
   public void produce(Patient p) throws InterruptedException{
     // patient try to enter the room
-    if (empty.getProcess() <= 0) {  // if the room is full
+    if (!empty.tryAcquire(0)) {  // if the room is full
       System.out.println("The waiting room is full");
       System.out.println(p + " is waiting outside for an avilable seat");
       empty.acquire();  
