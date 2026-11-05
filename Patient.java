@@ -35,6 +35,10 @@ public class Patient extends Thread {
     return isTreated;
   }
 
+  public void setIsTreated(Boolean flag) {
+    this.isTreated = flag;
+  }
+
   // so the doctor can release if he's treated successfully
   public void release() {
     treat.release();
