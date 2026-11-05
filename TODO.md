@@ -1,4 +1,4 @@
-- [ ] Implement TreatmentRooms
+- [x] Implement TreatmentRooms
 - [ ] Implement Hospital class
 - [ ] Implement Doctor's Overrided run method
 - [ ] Logs

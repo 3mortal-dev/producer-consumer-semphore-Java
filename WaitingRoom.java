@@ -4,8 +4,7 @@ import java.util.Queue;
 public class WaitingRoom {
   private Queue<Patient> patients = new LinkedList<>();
   private Semaphore empty;
-  private Semaphore full = new Semaphore(0); // just to indicate if there's a patient or not
-
+  private Semaphore full = new Semaphore(0); // indicates the doctors
   public WaitingRoom(Integer capacity) {
     this.empty = new Semaphore(capacity);
   }
