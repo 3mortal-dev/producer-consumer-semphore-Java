@@ -1,3 +1,4 @@
+package src;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -7,7 +8,6 @@ import java.util.Scanner;
  * Entry point: reads input, creates doctors and patients, and runs the
  * simulation.
  */
-// BUG: it doesn't work for sm reason
 public class Hospital {
 
   public static void main(String[] args) throws InterruptedException {

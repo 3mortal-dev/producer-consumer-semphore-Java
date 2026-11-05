@@ -1,3 +1,4 @@
+package src;
 
 public class Patient extends Thread {
   private final Integer id;

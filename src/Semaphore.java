@@ -1,3 +1,5 @@
+package src;
+
 public class Semaphore{
 
   private Integer process = 0;
