@@ -13,7 +13,7 @@ public class Patient extends Thread {
   @Override
   public void run() {
     try {
-      System.out.println(this + "arrived");
+      System.out.println(this + " arrived");
       while (true) {
         waitingRoom.produce(this);
         treat.acquire(); // wait till a doctor comes
@@ -21,7 +21,7 @@ public class Patient extends Thread {
           break;
         }
       }
-      System.out.println(this + "left");
+      System.out.println(this + " left");
     } catch (Exception e) {
       Thread.currentThread().interrupt();
     }

@@ -43,6 +43,7 @@ public class Hospital {
     for (int i = 1; i <= patientCount; i++) {
       System.out.print("P" + i + " ");
     }
+    System.out.println();
 
     for (Doctor d : doctors) {
       d.start();
