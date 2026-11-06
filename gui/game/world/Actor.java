@@ -31,6 +31,10 @@ public final class Actor {
     public boolean leaveRequested;
     public boolean pendingDespawn;
 
+    /** Doctors: stay at the bedside until the patient gets up (see WorldState). */
+    public boolean holdAtBedside;
+    public int bedsidePatientId = -1;
+
     public int episode;
     public int chairIndex = -1;
     public int queueIndex = -1;

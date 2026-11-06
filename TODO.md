@@ -40,3 +40,10 @@
 - [x] EventPlaybackQueue: OFF / DELAY (adjustable 0.3-2.0s, spaced FIFO) / STEP (`N`)
 - [x] Backlog indicator in the bottom strip; completion gated on drained queue
 - [x] Headless queue checks + live-window verification of delay/step/font switching
+
+## Bedside choreography (visual only, backend untouched)
+- [x] Doctor holds at bedside until patient gets up, then returns to station
+- [x] Next patient/doctor wait at staging until the bed visually vacates (pending slot)
+- [x] Sent-back patients walk straight back to a chair (or queue), not via intake
+- [x] Headless choreography checks (hold, pending promotion, pending-finish race, sent-back)
+- [x] Full pipeline re-verified (12/12, 40/40, 60/60) + live-window captures

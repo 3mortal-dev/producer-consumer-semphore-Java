@@ -59,6 +59,19 @@ and the bottom strip shows the backlog (`DELAY 0.7S QUEUED 67`). The backend
 simulation is untouched and keeps running underneath, pause freezes the playback
 clock, and completion is only shown once the queue has drained.
 
+### Bedside choreography
+
+The backend room permit and the physical bed are deliberately different things
+in the game. When treatment ends on the backend, the doctor stays at the bedside
+(`HOLDING_BEDSIDE`) until the patient actually gets up and leaves the bed; only
+then does he return to his station (or fetch his next patient). If the next
+patient claims the bed while the previous one is still recovering on it, the new
+pair waits at staging (`BedSlot.pendingPatientId`) and is promoted onto the bed
+when it vacates — no sprite teleporting or eviction. Similarly, a patient sent
+back after a failed room attempt walks straight back to a chair (or the outside
+queue when full) instead of detouring via the entrance intake. All of this is
+cosmetic, in `WorldReducer`/`WorldState`; backend concurrency is unchanged.
+
 ### Legacy 8-bit GUI mode
 
 ```

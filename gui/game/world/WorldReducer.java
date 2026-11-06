@@ -98,10 +98,20 @@ public final class WorldReducer {
             case TREATMENT_FINISHED -> {
                 world.treatedCount++;
                 patient.intentLying = false;
+                BedSlot bed = world.bedForPatient(patient.id);
+                // A pending patient is not yet bed.patientId on any bed, so
+                // bedForPatient() alone cannot see him; scan pending slots.
+                boolean pending = world.isPendingOnBed(patient.id);
+                if (pending) {
+                    // Backend treatment finished before this patient could
+                    // visually take the bed. He stays at staging; LEFT will
+                    // exit him from there. Do not put him into recovery.
+                    world.toast("P" + event.patientId() + " TREATED");
+                    break;
+                }
                 patient.patientState = PatientState.RECOVERING;
                 patient.stateSinceMs = world.nowMs;
                 patient.recoverUntilMs = world.nowMs + 700;
-                BedSlot bed = world.bedForPatient(patient.id);
                 if (bed != null) {
                     bed.treating = false;
                 }
@@ -116,6 +126,16 @@ public final class WorldReducer {
             }
             case LEFT -> {
                 patient.leaveRequested = true;
+                BedSlot pendingBed = world.pendingBedFor(patient.id);
+                if (pendingBed != null) {
+                    // Never visually took the bed: cancel the reservation
+                    // and exit from staging without a recovery pause.
+                    pendingBed.pendingPatientId = -1;
+                    pendingBed.pendingDoctorId = -1;
+                    world.startExit(patient);
+                    world.toast("P" + event.patientId() + " LEFT");
+                    break;
+                }
                 if (patient.patientState == PatientState.LYING
                         || patient.patientState == PatientState.TO_BED
                         || patient.patientState == PatientState.RECOVERING
@@ -154,6 +174,9 @@ public final class WorldReducer {
             case ASSIGNED_PATIENT -> {
                 doctor.doctorState = DoctorState.TO_PATIENT;
                 doctor.intentTreating = false;
+                // A new assignment overrides any bedside hold on the last patient.
+                doctor.holdAtBedside = false;
+                doctor.bedsidePatientId = -1;
                 world.sendDoctorToStaging(doctor);
 
                 Actor patient = patientId > 0 ? world.patient(patientId) : null;
@@ -180,7 +203,11 @@ public final class WorldReducer {
             case ACQUIRED_ROOM -> {
                 doctor.doctorState = DoctorState.TO_BEDSIDE;
                 BedSlot bed = world.bedForRoom(doctor.roomIndex);
-                if (bed != null) {
+                if (bed != null && bed.pendingPatientId == patientId) {
+                    // Bed still visually occupied: wait at staging for promotion.
+                    doctor.doctorState = DoctorState.WAITING_FOR_ROOM;
+                    world.sendDoctorToStaging(doctor);
+                } else if (bed != null) {
                     world.sendDoctorToBedside(doctor, bed);
                 } else if (!doctor.hasPath()) {
                     world.sendDoctorToStaging(doctor);
@@ -190,7 +217,23 @@ public final class WorldReducer {
                 doctor.intentTreating = true;
                 doctor.doctorState = DoctorState.TO_BEDSIDE;
                 BedSlot bed = world.bedForRoom(doctor.roomIndex);
-                if (bed != null) {
+                if (bed != null && bed.pendingPatientId == patientId) {
+                    // Treatment started on the backend, but the bed is still
+                    // visually occupied. Both actors wait at staging;
+                    // promotePending() sends them in when the bed frees.
+                    doctor.doctorState = DoctorState.WAITING_FOR_ROOM;
+                    world.sendDoctorToStaging(doctor);
+                    Actor waiting = patientId > 0 ? world.patient(patientId) : null;
+                    if (waiting != null) {
+                        waiting.intentLying = true;
+                        waiting.roomIndex = bed.roomIndex;
+                        if (waiting.patientState != PatientState.STAGING
+                                && waiting.patientState != PatientState.TO_BED
+                                && waiting.patientState != PatientState.LYING) {
+                            world.sendToStaging(waiting);
+                        }
+                    }
+                } else if (bed != null) {
                     bed.treating = true;
                     if (bed.patientId > 0) {
                         Actor patient = world.patient(bed.patientId);
@@ -213,14 +256,32 @@ public final class WorldReducer {
                 }
             }
             case RELEASED_ROOM -> {
-                doctor.doctorState = DoctorState.RETURNING;
                 doctor.intentTreating = false;
                 BedSlot bed = world.bedForRoom(doctor.roomIndex);
-                if (bed != null) {
-                    bed.occupied = false;
-                    bed.treating = false;
+                if (bed != null) bed.treating = false;
+                Actor treated = patientId > 0 ? world.patient(patientId) : null;
+                boolean patientOnBed = treated != null && bed != null
+                        && bed.patientId == patientId
+                        && (treated.patientState == PatientState.LYING
+                            || treated.patientState == PatientState.TO_BED
+                            || treated.patientState == PatientState.RECOVERING);
+                if (patientOnBed) {
+                    // Backend treatment is done, but the patient is still on
+                    // the mattress. The doctor stands at the bedside until
+                    // startExit() lifts the patient off (see WorldState).
+                    // bed.occupied/patientId are intentionally kept: the bed
+                    // is visually occupied until then.
+                    doctor.holdAtBedside = true;
+                    doctor.bedsidePatientId = patientId;
+                    doctor.doctorState = DoctorState.HOLDING_BEDSIDE;
+                    // If still walking to the bedside, keep the path; arrive()
+                    // will park him in HOLDING_BEDSIDE. Otherwise he is
+                    // already there and simply stays put.
+                } else {
+                    doctor.holdAtBedside = false;
+                    doctor.doctorState = DoctorState.RETURNING;
+                    world.sendDoctorToStation(doctor);
                 }
-                world.sendDoctorToStation(doctor);
                 world.toast("D" + event.doctorId() + " RELEASED ROOM");
             }
             case COULD_NOT_ACQUIRE -> {
@@ -229,19 +290,19 @@ public final class WorldReducer {
                 world.toast("D" + event.doctorId() + " NO ROOM");
             }
             case SENDING_BACK -> {
+                // Doctor only gestures; the patient is routed back to seating
+                // by his own SENT_BACK event (WorldState.sendPatientBack).
                 doctor.doctorState = DoctorState.GESTURING;
-                if (patientId > 0) {
-                    Actor patient = world.patient(patientId);
-                    if (patient != null) {
-                        world.sendPatientBack(patient);
-                        clearClinical(patient);
-                    }
-                }
                 world.toast("D" + event.doctorId() + " SENDS P" + patientId + " BACK");
             }
             case AVAILABLE -> {
-                doctor.doctorState = DoctorState.RETURNING;
                 doctor.intentTreating = false;
+                if (doctor.holdAtBedside) {
+                    // Stay at the bedside until the patient gets up; a later
+                    // ASSIGNED event will clear the hold if he is needed.
+                    break;
+                }
+                doctor.doctorState = DoctorState.RETURNING;
                 doctor.roomIndex = -1;
                 world.sendDoctorToStation(doctor);
             }
@@ -257,25 +318,46 @@ public final class WorldReducer {
         if (bed == null) return;
 
         if (event.action() == RoomEvent.RoomAction.OCCUPIED) {
-            // At high speed the next patient can claim a bed before the previous
-            // one has finished the cosmetic recovery walk. Evict the old actor
-            // rather than letting two sprites occupy the mattress.
+            Actor patient = world.getOrCreatePatientAt(
+                    event.patientId(), WorldLayout.STAGING_X, WorldLayout.STAGING_Y);
+            Actor doctor = world.getOrCreateDoctor(event.doctorId());
+
             int previousPatient = bed.patientId;
-            if (previousPatient > 0 && previousPatient != event.patientId()) {
-                Actor old = world.patient(previousPatient);
-                if (old != null && old.visible && old.patientState != PatientState.GONE) {
-                    old.leaveRequested = true;
-                    world.startExit(old);
+            Actor previous = previousPatient > 0 ? world.patient(previousPatient) : null;
+            boolean visuallyOccupied = previousPatient > 0
+                    && previousPatient != event.patientId()
+                    && previous != null && previous.visible
+                    && previous.patientState != PatientState.GONE
+                    && previous.patientState != PatientState.LEAVING;
+
+            if (visuallyOccupied) {
+                // The backend permit was re-issued while the previous patient
+                // is still on the mattress. Hold the new pair at staging;
+                // promotePending() on startExit() sends them in. The bed
+                // keeps pointing at the previous patient until then.
+                bed.pendingPatientId = event.patientId();
+                bed.pendingDoctorId = event.doctorId();
+                patient.roomIndex = event.roomIndex();
+                if (patient.patientState != PatientState.LYING
+                        && patient.patientState != PatientState.LEAVING
+                        && patient.patientState != PatientState.GONE) {
+                    world.sendToStaging(patient);
                 }
+                doctor.roomIndex = event.roomIndex();
+                doctor.doctorState = DoctorState.WAITING_FOR_ROOM;
+                world.sendDoctorToStaging(doctor);
+                world.toast("P" + event.patientId() + " -> BED " + (event.roomIndex() + 1)
+                        + " (WAITING)");
+                return;
             }
 
             bed.occupied = true;
             bed.patientId = event.patientId();
             bed.doctorId = event.doctorId();
+            bed.pendingPatientId = -1;
+            bed.pendingDoctorId = -1;
             bed.treating = false;
 
-            Actor patient = world.getOrCreatePatientAt(
-                    event.patientId(), WorldLayout.STAGING_X, WorldLayout.STAGING_Y);
             patient.roomIndex = event.roomIndex();
             if (patient.patientState != PatientState.LYING
                     && patient.patientState != PatientState.LEAVING
@@ -283,21 +365,19 @@ public final class WorldReducer {
                 world.sendPatientToBed(patient, bed);
             }
 
-            Actor doctor = world.getOrCreateDoctor(event.doctorId());
             doctor.roomIndex = event.roomIndex();
             world.sendDoctorToBedside(doctor, bed);
             world.toast("P" + event.patientId() + " -> BED " + (event.roomIndex() + 1));
         } else {
-            bed.occupied = false;
+            // Backend permit returned. Visual occupancy (bed.patientId) is
+            // kept until startExit() lifts the patient off the mattress.
             bed.treating = false;
-            // Keep bed.patientId for the lying/recovery render until the actor
-            // actually leaves; the next occupancy overwrites it.
-            bed.doctorId = -1;
             Actor doctor = world.doctor(event.doctorId());
-            if (doctor != null && doctor.doctorState != DoctorState.TREATING) {
+            if (doctor != null && doctor.doctorState != DoctorState.TREATING
+                    && doctor.doctorState != DoctorState.HOLDING_BEDSIDE) {
                 doctor.doctorState = DoctorState.RETURNING;
             }
-            world.toast("BED " + (event.roomIndex() + 1) + " FREE");
+            world.toast("BED " + (event.roomIndex() + 1) + " RELEASED");
         }
     }
 
@@ -323,6 +403,12 @@ public final class WorldReducer {
             bed.treating = false;
             bed.patientId = -1;
             bed.doctorId = -1;
+        }
+        for (BedSlot candidate : world.beds) {
+            if (candidate.pendingPatientId == patient.id) {
+                candidate.pendingPatientId = -1;
+                candidate.pendingDoctorId = -1;
+            }
         }
         patient.roomIndex = -1;
         patient.intentLying = false;

@@ -21,6 +21,15 @@ public final class BedSlot {
     public int patientId = -1;
     public int doctorId = -1;
 
+    /**
+     * Next backend occupant waiting for this bed to become visually free.
+     * The backend permit may already be re-issued while the previous patient
+     * is still recovering on the mattress; the pending pair holds at staging
+     * until {@code WorldState.startExit} vacates the bed.
+     */
+    public int pendingPatientId = -1;
+    public int pendingDoctorId = -1;
+
     public BedSlot(int roomIndex,
                    int bedCellX, int bedCellY,
                    double patientX, double patientY,

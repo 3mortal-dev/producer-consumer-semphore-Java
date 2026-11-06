@@ -130,6 +130,21 @@ public final class WorldState {
         return null;
     }
 
+    /** True when this patient holds a pending reservation on some bed. */
+    public boolean isPendingOnBed(int patientId) {
+        for (BedSlot bed : beds) {
+            if (bed.pendingPatientId == patientId) return true;
+        }
+        return false;
+    }
+
+    public BedSlot pendingBedFor(int patientId) {
+        for (BedSlot bed : beds) {
+            if (bed.pendingPatientId == patientId) return bed;
+        }
+        return null;
+    }
+
     public void moveTo(Actor actor, int cellX, int cellY,
                        double exactX, double exactY, MoveGoal goal) {
         int startX = (int) Math.floor(actor.gx);
@@ -195,10 +210,18 @@ public final class WorldState {
 
     public void sendDoctorToBedside(Actor doctor, BedSlot bed) {
         doctor.roomIndex = bed.roomIndex;
+        doctor.bedsidePatientId = bed.patientId;
         doctor.doctorState = DoctorState.TO_BEDSIDE;
         moveTo(doctor, bed.approachX, bed.approachY, bed.doctorX, bed.doctorY, MoveGoal.BEDSIDE);
     }
 
+    /**
+     * A patient sent back after a failed room attempt re-enters the waiting
+     * room. He was already inside, so he walks straight back to a chair (or
+     * the outside queue when the room is full) — not via the entrance intake.
+     * The following ENTERED/WAITING event is idempotent: SlotAllocator
+     * returns the same chair/slot, so the walk simply replans to it.
+     */
     public void sendPatientBack(Actor patient) {
         patient.leaveRequested = false;
         patient.pendingDespawn = false;
@@ -218,6 +241,18 @@ public final class WorldState {
             patient.gy = bed.approachY + 0.5;
             patient.z = 0;
         }
+        ChairSlot chair = slots.assignChair(patient.id);
+        if (chair != null) {
+            sendPatientToChair(patient, chair);
+            return;
+        }
+        QueueSlot slot = slots.assignQueue(patient.id);
+        if (slot != null) {
+            sendPatientToQueue(patient, slot);
+            return;
+        }
+        // Both chair block and queue slots are full (rare at high capacity):
+        // hold at the intake until the next event frees something.
         sendToIntake(patient, MoveGoal.RETURN_INTAKE);
     }
 
@@ -245,6 +280,52 @@ public final class WorldState {
         // The door opens when the walker actually gets close; see update().
         moveTo(patient, (int) Math.floor(WorldLayout.GATE_X), (int) Math.floor(WorldLayout.GATE_Y),
                 WorldLayout.GATE_X, WorldLayout.GATE_Y, MoveGoal.EXIT);
+
+        if (vacated != null) {
+            // The patient is off the mattress: bedside doctors may leave and
+            // a pending next occupant may take the bed.
+            releaseHoldingDoctors(vacated);
+            promotePending(vacated);
+        }
+    }
+
+    /** Doctors whose treatment is done wait here until the patient gets up. */
+    private void releaseHoldingDoctors(BedSlot bed) {
+        for (Actor doctor : doctors.values()) {
+            if (doctor.holdAtBedside && doctor.roomIndex == bed.roomIndex) {
+                doctor.holdAtBedside = false;
+                doctor.bedsidePatientId = -1;
+                sendDoctorToStation(doctor);
+            }
+        }
+    }
+
+    /** Sends a held staging pair onto a bed that has just been vacated. */
+    private void promotePending(BedSlot bed) {
+        int nextPatientId = bed.pendingPatientId;
+        int nextDoctorId = bed.pendingDoctorId;
+        bed.pendingPatientId = -1;
+        bed.pendingDoctorId = -1;
+        if (nextPatientId <= 0) return;
+
+        Actor nextPatient = patient(nextPatientId);
+        if (nextPatient == null || !nextPatient.visible
+                || nextPatient.leaveRequested
+                || nextPatient.patientState == PatientState.RECOVERING
+                || nextPatient.patientState == PatientState.LEAVING
+                || nextPatient.patientState == PatientState.GONE) {
+            return;
+        }
+
+        bed.occupied = true;
+        bed.patientId = nextPatientId;
+        bed.doctorId = nextDoctorId;
+        sendPatientToBed(nextPatient, bed);
+
+        Actor nextDoctor = nextDoctorId > 0 ? doctor(nextDoctorId) : null;
+        if (nextDoctor != null && nextDoctor.visible) {
+            sendDoctorToBedside(nextDoctor, bed);
+        }
     }
 
     public void update(double dtSeconds) {
@@ -254,8 +335,13 @@ public final class WorldState {
 
         for (Actor patient : patients.values()) {
             if (patient.visible) advance(patient, dtSeconds);
-            if (patient.patientState == PatientState.RECOVERING
+            // STAGING is included: a patient can arrive at staging after
+            // TREATMENT_FINISHED set RECOVERING, and arrive() would
+            // otherwise overwrite that state and strand him there.
+            if ((patient.patientState == PatientState.RECOVERING
+                    || patient.patientState == PatientState.STAGING)
                     && leaveRequested(patient)
+                    && patient.recoverUntilMs > 0
                     && nowMs >= patient.recoverUntilMs) {
                 startExit(patient);
             }
@@ -364,8 +450,10 @@ public final class WorldState {
         } else {
             switch (goal) {
                 case STATION -> actor.doctorState = DoctorState.IDLE;
-                case BEDSIDE -> actor.doctorState =
-                        actor.intentTreating ? DoctorState.TREATING : DoctorState.WAITING_FOR_ROOM;
+                case BEDSIDE -> actor.doctorState = actor.holdAtBedside
+                        ? DoctorState.HOLDING_BEDSIDE
+                        : actor.intentTreating ? DoctorState.TREATING
+                                : DoctorState.WAITING_FOR_ROOM;
                 case STAGING -> actor.doctorState = DoctorState.WAITING_FOR_ROOM;
                 case RETURN_INTAKE, INTAKE -> actor.doctorState = DoctorState.IDLE;
                 default -> { }
