@@ -10,9 +10,11 @@ TA: Andro | Group: S7
 | 2   | NourEldin     | 20240639 |
 | 3   | Youssef Saleh | 20240694 |
 
-This is a Java simulation of a small emergency room. Patients show up, sit in a waiting room with a limited number of seats, and doctors pick them up one by one. There are only two treatment rooms, so doctors sometimes have to give up and send a patient back. All the thread coordination is done with a Semaphore class we wrote ourselves, no `java.util.concurrent`.
+This is a Java simulation of a small emergency room. Patients show up, sit in a waiting room with a limited number of seats, and doctors pick them up one by one. There are only two treatment rooms, so doctors sometimes have to give up and send a patient back. All the simulation's thread coordination is done with a Semaphore class we wrote ourselves, no `java.util.concurrent`. (The optional GUI event bus uses `java.util.concurrent` collections only to hand immutable events to Swing; no simulation logic relies on them.)
 
 ## Running it
+
+### Console mode
 
 ```
 cd src
@@ -22,6 +24,31 @@ java Hospital
 
 It asks for three numbers: waiting room capacity, number of doctors, number of patients. Then it just prints what happens. When every patient has been treated you get "All patients have been treated." and the program exits on its own.
 
+### 8-bit GUI mode
+
+From the project root:
+
+```
+javac -d out $(find src gui -name '*.java')
+java -cp out gui.HospitalGUI
+```
+
+The font is loaded from `resources/fonts/` automatically (classpath resource, with a
+filesystem fallback), so running from the project root works either way.
+
+The GUI gives you the same three inputs plus:
+
+| Control | Meaning |
+|---|---|
+| **START** | Resets the board and runs a fresh simulation |
+| **PAUSE / RESUME** | Freezes the GUI only; the backend keeps running |
+| **0.5x / 1x / 2x / 4x** | Real speed scaling: `Thread.sleep` values in `Doctor` and the patient arrival gap in `Hospital` are divided by this factor |
+
+While it runs you can watch the waiting-room seats, the outside queue, both treatment
+rooms, each doctor's state, live stats, and a scrolling event ticker. A stock `.ttf`
+called *Press Start 2P* provides the arcade font; every sprite is drawn procedurally
+with `Graphics2D` (no image files).
+
 ## What is in the folder
 
 ```
@@ -29,6 +56,8 @@ README.md
 TODO.md
 A1.pdf
 sample-output.txt
+resources/
+  fonts/               PressStart2P-Regular.ttf (8-bit arcade font)
 src/
   Hospital.java        main(), reads input, starts everything
   Patient.java         one thread per patient
@@ -36,7 +65,35 @@ src/
   WaitingRoom.java     the bounded buffer (seats)
   TreatmentRooms.java  the 2 rooms
   Semaphore.java       our own semaphore
+  SimulationConfig.java live speed multiplier shared with the GUI
+  EventLogger.java     posts simulation events to the GUI broadcaster
+gui/
+  HospitalGUI.java     JFrame, bootstraps the 8-bit view
+  PixelCanvas.java     60-ish FPS double-buffered renderer
+  GuiModel.java        immutable snapshot of the board for rendering
+  GuiEventListener.java EDT bridge (SwingUtilities.invokeLater)
+  events/              immutable event records + broadcaster
+  rendering/           16-color palette, procedurally drawn sprites, font
+  components/          waiting room, treatment rooms, doctor bar, ticker, controls
 ```
+
+## The 8-bit GUI layer
+
+The GUI never touches a semaphore or blocks a simulation thread. The backend keeps
+printing the same events it always did, but now also calls `EventLogger`, which posts
+an immutable event to `SimulationEventBroadcaster`. That broadcaster runs on the
+simulation threads, so it only enqueues and fans out; `GuiEventListener` hops to the
+Swing Event Dispatch Thread with `SwingUtilities.invokeLater` and applies the event to
+an immutable `GuiModel`. `PixelCanvas` then repaints from that snapshot.
+
+This means:
+
+- Semaphores, the waiting-room monitor, and `join()`/`interrupt()` are untouched.
+- The EDT never calls `acquire()`, `wait()`, `sleep()`, or `join()`.
+- Every visual update is a plain data event, so thread safety is by construction.
+- Pause freezes rendering only; the simulation keeps running underneath.
+- Speed changes are real: `SimulationConfig.getSpeed()` is read by backend threads,
+  so treatment time, the 3-second room timeout, and arrival gaps all scale.
 
 ## The idea in a few lines
 

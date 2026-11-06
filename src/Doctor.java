@@ -22,26 +22,30 @@ public class Doctor extends Thread {
       while (true) {
         Patient p = waitingRoom.consume();
 
-        System.out.println(this + " is assigned to " + p);
-        System.out.println(this + " is trying to acquire a treatment room ");
+        EventLogger.doctorAssignedPatient(id, p.getPId());
+        EventLogger.doctorTryingAcquireRoom(id, p.getPId());
 
-        if (treatmentRooms.tryAcquire(ROOM_TIMEOUT)) {
-          System.out.println(this + " acquired a treatment room");
-          System.out.println(this + " begins treating " + p);
-          Thread.sleep(new Random().nextInt(MAX_TREATMENT - MIN_TREATMENT + 1) + MIN_TREATMENT);
-          System.out.println(this + " finished treating " + p);
-          treatmentRooms.release();
-          System.out.println(this + " released the treatment room");
+        float speed = SimulationConfig.getSpeed();
+        int timeout = Math.max(1, (int) (ROOM_TIMEOUT / Math.max(0.1f, speed)));
+        int roomIndex = treatmentRooms.tryAcquireRoom(id, p.getPId(), timeout);
+        if (roomIndex >= 0) {
+          EventLogger.doctorAcquiredRoom(id, p.getPId());
+          EventLogger.doctorTreating(id, p.getPId());
+          int treatmentMs = new Random().nextInt(MAX_TREATMENT - MIN_TREATMENT + 1) + MIN_TREATMENT;
+          long scaledTreatment = (long) (treatmentMs / Math.max(0.1f, speed));
+          Thread.sleep(scaledTreatment);
+          treatmentRooms.releaseRoom(roomIndex, id, p.getPId());
+          EventLogger.doctorReleasedRoom(id, p.getPId());
           p.setIsTreated(true);
           p.release();
-          System.out.println(this + " is now available");
+          EventLogger.doctorAvailable(id);
         }
         // if the doctor couldn't get a room under 3 seconds
         else {
-          System.out.println(this + " couldn't acquire a treatment room");
-          System.out.println(this + " is sending " + p + " back to the waiting room");
+          EventLogger.doctorCouldNotAcquire(id, p.getPId());
+          EventLogger.doctorSendingBack(id, p.getPId());
           p.release();
-          System.out.println(this + " is now available");
+          EventLogger.doctorAvailable(id);
         }
 
       }

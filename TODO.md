@@ -6,3 +6,16 @@
 - [x] Logs
 - [x] Review
 - [x] Push on github
+
+## 8-bit GUI
+- [x] Event model + thread-safe broadcaster (backend -> EDT)
+- [x] Backend hooks in Patient / Doctor / WaitingRoom / TreatmentRooms
+- [x] 16-color palette + procedural sprite atlas
+- [x] Press Start 2P font loading with fallback
+- [x] PixelCanvas double-buffered renderer
+- [x] Waiting room seats + outside queue view
+- [x] Two treatment rooms view
+- [x] Doctor status bar
+- [x] Scrolling event log
+- [x] Control panel: inputs, START, PAUSE, real speed scaling
+- [x] Live simulation smoke test
