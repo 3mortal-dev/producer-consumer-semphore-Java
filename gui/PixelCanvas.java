@@ -2,8 +2,10 @@ package gui;
 
 import gui.components.DoctorStatusBar;
 import gui.components.EventLogTicker;
+import gui.components.HospitalFloorView;
 import gui.components.TreatmentRoomView;
 import gui.components.WaitingRoomView;
+import gui.events.SimulationEvent;
 import gui.rendering.ColorPalette;
 import gui.rendering.Font8Bit;
 import gui.rendering.SpriteAtlas;
@@ -28,6 +30,7 @@ public class PixelCanvas extends JPanel {
     private volatile boolean paused = false;
 
     private final WaitingRoomView waitingRoomView;
+    private final HospitalFloorView hospitalFloorView;
     private final TreatmentRoomView treatmentRoomView;
     private final DoctorStatusBar doctorStatusBar;
     private final EventLogTicker eventLogTicker;
@@ -48,12 +51,17 @@ public class PixelCanvas extends JPanel {
         SpriteAtlas.init();
 
         waitingRoomView = new WaitingRoomView(this);
+        hospitalFloorView = new HospitalFloorView();
         treatmentRoomView = new TreatmentRoomView(this);
         doctorStatusBar = new DoctorStatusBar(this);
         eventLogTicker = new EventLogTicker(this);
 
-        animationTimer = new Timer(120, e -> {
-            if (!paused) repaint();
+        // ~25 FPS for smooth walk cycles while staying cheap on the EDT.
+        animationTimer = new Timer(40, e -> {
+            if (!paused) {
+                hospitalFloorView.update();
+                repaint();
+            }
         });
         animationTimer.start();
     }
@@ -69,7 +77,17 @@ public class PixelCanvas extends JPanel {
     public void reset(GuiModel model) {
         this.model = model;
         this.paused = false;
+        hospitalFloorView.reset();
         repaint();
+    }
+
+    /** Feed a simulation event to the cosmetic floor animation layer. */
+    public void onSimulationEvent(SimulationEvent event) {
+        // While paused, don't spawn fresh walkers that would pile up at the
+        // entrances; already-walking characters stay frozen and resume later.
+        if (!paused) {
+            hospitalFloorView.onEvent(event);
+        }
     }
 
     public void requestRepaint() {
@@ -97,6 +115,7 @@ public class PixelCanvas extends JPanel {
         drawTitleBar(offscreenGraphics);
         eventLogTicker.draw(offscreenGraphics);
         waitingRoomView.draw(offscreenGraphics);
+        hospitalFloorView.draw(offscreenGraphics);
         treatmentRoomView.draw(offscreenGraphics);
         drawStatsPanel(offscreenGraphics);
         doctorStatusBar.draw(offscreenGraphics);
@@ -128,7 +147,7 @@ public class PixelCanvas extends JPanel {
 
     private void drawStatsPanel(Graphics2D g) {
         // Fills the empty space to the right of the two treatment rooms.
-        int x = 372, y = 296, w = 636, h = 96;
+        int x = 372, y = 500, w = 636, h = 96;
         g.setColor(ColorPalette.GRAY_DARK);
         g.fillRect(x, y, w, h);
         g.setColor(ColorPalette.BLUE_LIGHT);

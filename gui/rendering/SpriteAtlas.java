@@ -42,6 +42,9 @@ public final class SpriteAtlas {
         get("patient_outside");
         get("patient_treatment"); get("patient_treatment_f1");
         get("patient_leaving"); get("patient_leaving_f1");
+        get("patient_walk_front_f0"); get("patient_walk_front_f1");
+        get("patient_walk_right_f0"); get("patient_walk_right_f1");
+        get("patient_walk_left_f0"); get("patient_walk_left_f1");
 
         // Doctor sprites
         get("doctor_idle"); get("doctor_idle_f1");
@@ -49,6 +52,9 @@ public final class SpriteAtlas {
         get("doctor_acquiring");
         get("doctor_treating"); get("doctor_treating_f1");
         get("doctor_sending_back");
+        get("doctor_walk_front_f0"); get("doctor_walk_front_f1");
+        get("doctor_walk_right_f0"); get("doctor_walk_right_f1");
+        get("doctor_walk_left_f0"); get("doctor_walk_left_f1");
 
         // Furniture/environment
         get("chair_empty");
@@ -71,6 +77,12 @@ public final class SpriteAtlas {
         // Disable anti-aliasing for crisp pixels
         g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_OFF);
         g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+
+        // Left-facing sprites are horizontally mirrored right-facing sprites.
+        if (key.contains("_left_")) {
+            g.translate(SPRITE_SIZE, 0);
+            g.scale(-1, 1);
+        }
 
         drawSprite(g, key);
 
@@ -107,6 +119,23 @@ public final class SpriteAtlas {
                 break;
             case "patient_leaving_f1":
                 drawPatient(g, -1, 0, true);
+                break;
+
+            // Directional walk cycle. *_left_* is mirrored in generateSprite().
+            case "patient_walk_front_f0":
+                drawPatient(g, 1, 0, false);
+                break;
+            case "patient_walk_front_f1":
+                drawPatient(g, 1, 0, true);
+                break;
+            case "patient_walk_right_f0":
+            case "patient_walk_left_f0":
+                drawPatientSide(g, false);
+                break;
+            case "patient_walk_right_f1":
+            case "patient_walk_left_f1":
+                drawPatientSide(g, true);
+                break;
 
             // ========== DOCTOR SPRITES ==========
             case "doctor_idle":
@@ -132,6 +161,20 @@ public final class SpriteAtlas {
                 break;
             case "doctor_sending_back":
                 drawDoctorSendingBack(g);
+                break;
+            case "doctor_walk_front_f0":
+                drawDoctor(g, 1, false);
+                break;
+            case "doctor_walk_front_f1":
+                drawDoctor(g, 1, true);
+                break;
+            case "doctor_walk_right_f0":
+            case "doctor_walk_left_f0":
+                drawDoctorSide(g, false);
+                break;
+            case "doctor_walk_right_f1":
+            case "doctor_walk_left_f1":
+                drawDoctorSide(g, true);
                 break;
 
             // ========== FURNITURE ==========
@@ -246,6 +289,47 @@ public final class SpriteAtlas {
         drawPatient(g, 1, 0, false);
     }
 
+    /** Side profile facing right (mirrored for left by the caller). */
+    private static void drawPatientSide(Graphics2D g, boolean frame2) {
+        // Hair / head
+        g.setColor(ColorPalette.GRAY_DARK);
+        g.fillRect(5, 0, 5, 1);
+        g.setColor(ColorPalette.SKIN);
+        g.fillRect(5, 1, 5, 5);
+        g.setColor(ColorPalette.BLACK);
+        g.fillRect(8, 2, 1, 1);           // eye
+        g.setColor(ColorPalette.SKIN);
+        g.fillRect(10, 3, 1, 1);          // nose
+
+        // Gown + cross
+        g.setColor(ColorPalette.PATIENT_GOWN);
+        g.fillRect(4, 6, 7, 7);
+        g.setColor(ColorPalette.RED);
+        g.fillRect(6, 8, 2, 2);
+
+        // Arm
+        g.setColor(ColorPalette.SKIN);
+        g.fillRect(10, 7, 2, 4);
+
+        // Legs alternate with the walk cycle
+        g.setColor(ColorPalette.SKIN);
+        if (frame2) {
+            g.fillRect(4, 13, 2, 3);
+            g.fillRect(8, 13, 3, 3);
+        } else {
+            g.fillRect(5, 13, 2, 3);
+            g.fillRect(9, 13, 2, 3);
+        }
+        g.setColor(ColorPalette.BLACK);
+        if (frame2) {
+            g.fillRect(4, 15, 3, 1);
+            g.fillRect(10, 15, 2, 1);
+        } else {
+            g.fillRect(5, 15, 2, 1);
+            g.fillRect(9, 15, 3, 1);
+        }
+    }
+
     private static void drawPatientLying(Graphics2D g, boolean frame2) {
         // Patient lying on bed (horizontal, head left)
         g.setColor(ColorPalette.PATIENT_GOWN);
@@ -350,6 +434,52 @@ public final class SpriteAtlas {
         g.fillRect(0, 8, 4, 8);
         g.setColor(ColorPalette.DOCTOR_COAT);
         g.fillRect(0, 6, 4, 2);
+    }
+
+    /** Side profile facing right (mirrored for left by the caller). */
+    private static void drawDoctorSide(Graphics2D g, boolean frame2) {
+        // Hair / head
+        g.setColor(ColorPalette.GRAY_DARK);
+        g.fillRect(5, 0, 5, 1);
+        g.setColor(ColorPalette.SKIN);
+        g.fillRect(5, 1, 5, 5);
+        g.setColor(ColorPalette.BLACK);
+        g.fillRect(8, 2, 1, 1);           // eye
+        g.setColor(ColorPalette.SKIN);
+        g.fillRect(10, 3, 1, 1);          // nose
+
+        // Orange coat + white collar
+        g.setColor(ColorPalette.DOCTOR_COAT);
+        g.fillRect(4, 6, 7, 7);
+        g.setColor(ColorPalette.WHITE);
+        g.fillRect(6, 6, 3, 1);
+
+        // Stethoscope
+        g.setColor(ColorPalette.BLACK);
+        g.drawLine(7, 7, 9, 10);
+        g.fillOval(8, 10, 3, 2);
+
+        // Arm
+        g.setColor(ColorPalette.SKIN);
+        g.fillRect(10, 7, 2, 4);
+
+        // Legs alternate
+        g.setColor(ColorPalette.GRAY_DARK);
+        if (frame2) {
+            g.fillRect(4, 13, 2, 3);
+            g.fillRect(8, 13, 3, 3);
+        } else {
+            g.fillRect(5, 13, 2, 3);
+            g.fillRect(9, 13, 2, 3);
+        }
+        g.setColor(ColorPalette.BLACK);
+        if (frame2) {
+            g.fillRect(4, 15, 3, 1);
+            g.fillRect(10, 15, 2, 1);
+        } else {
+            g.fillRect(5, 15, 2, 1);
+            g.fillRect(9, 15, 3, 1);
+        }
     }
 
     // ========== FURNITURE ==========

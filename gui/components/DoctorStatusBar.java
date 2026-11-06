@@ -18,7 +18,7 @@ public class DoctorStatusBar {
     private final PixelCanvas canvas;
 
     private static final int PANEL_X = 16;
-    private static final int PANEL_Y = 402;
+    private static final int PANEL_Y = 604;
     private static final int PANEL_H = 96;
     private static final int CARD_GAP = 6;
 
@@ -68,9 +68,11 @@ public class DoctorStatusBar {
         String label = "D" + doctorId;
         Font8Bit.drawString(g, label, x + 4, y + 12, 7, ColorPalette.WHITE);
 
-        // Sprite
+        // Sprite (animated for idle / walking / treating)
         String spriteKey = spriteFor(state);
-        BufferedImage sprite = SpriteAtlas.get(spriteKey);
+        BufferedImage sprite = isAnimated(spriteKey)
+                ? SpriteAtlas.get(spriteKey, animFrame())
+                : SpriteAtlas.get(spriteKey);
         SpriteRenderer.draw(g, sprite, x + 4, y + 18);
 
         // State text (wrapped/abbreviated)
@@ -87,6 +89,15 @@ public class DoctorStatusBar {
             case COULD_NOT_ACQUIRE, SENDING_BACK -> "doctor_sending_back";
             default -> "doctor_idle";
         };
+    }
+
+    private static boolean isAnimated(String key) {
+        return key.equals("doctor_idle") || key.equals("doctor_walking") || key.equals("doctor_treating");
+    }
+
+    /** 2-frame idle/treat cycle shared across the status cards. */
+    private static int animFrame() {
+        return (int) ((System.currentTimeMillis() / 250) % 2);
     }
 
     private String shortState(GuiModel.DoctorState state) {

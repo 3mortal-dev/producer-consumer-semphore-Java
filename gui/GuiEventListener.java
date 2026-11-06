@@ -21,6 +21,7 @@ public final class GuiEventListener implements SimulationEventListener {
         SwingUtilities.invokeLater(() -> {
             GuiModel current = canvas.getModel();
             if (current == null) return;
+            canvas.onSimulationEvent(event);
             GuiModel next = current.apply(event);
             canvas.setModel(next);
             canvas.requestRepaint();

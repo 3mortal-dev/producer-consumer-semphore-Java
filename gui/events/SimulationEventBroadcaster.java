@@ -1,6 +1,7 @@
 package gui.events;
 
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -10,8 +11,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public final class SimulationEventBroadcaster {
     private static final SimulationEventBroadcaster INSTANCE = new SimulationEventBroadcaster();
+    private static final int DIAGNOSTIC_CAPACITY = 2048;
 
-    private final ConcurrentLinkedQueue<SimulationEvent> eventQueue = new ConcurrentLinkedQueue<>();
+    // Bounded, non-blocking diagnostic history. Production listeners receive the
+    // event directly; this queue exists only for tests/debugging and must never
+    // grow without bound while a long simulation runs.
+    private final Queue<SimulationEvent> eventQueue = new ArrayBlockingQueue<>(DIAGNOSTIC_CAPACITY);
     private final CopyOnWriteArrayList<SimulationEventListener> listeners = new CopyOnWriteArrayList<>();
 
     private SimulationEventBroadcaster() {}
@@ -26,7 +31,7 @@ public final class SimulationEventBroadcaster {
      * Called from simulation threads.
      */
     public void post(SimulationEvent event) {
-        eventQueue.add(event);
+        eventQueue.offer(event); // drop-newest if the diagnostic buffer is full
         // Fan out to listeners (they handle EDT dispatch)
         for (SimulationEventListener listener : listeners) {
             try {
@@ -55,9 +60,9 @@ public final class SimulationEventBroadcaster {
     }
 
     /**
-     * Get pending events (for testing/debugging).
+     * Get pending diagnostic events (for testing/debugging).
      */
-    public ConcurrentLinkedQueue<SimulationEvent> getEventQueue() {
+    public Queue<SimulationEvent> getEventQueue() {
         return eventQueue;
     }
 

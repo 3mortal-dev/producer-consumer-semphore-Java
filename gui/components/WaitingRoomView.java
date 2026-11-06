@@ -18,16 +18,16 @@ public class WaitingRoomView {
     private final PixelCanvas canvas;
 
     private static final int PANEL_X = 16;
-    private static final int PANEL_Y = 104;
+    private static final int PANEL_Y = 96;
     private static final int PANEL_W = 992;
-    private static final int PANEL_H = 184;
+    private static final int PANEL_H = 144;
 
     private static final int OUTSIDE_X = 28;
-    private static final int OUTSIDE_Y = 140;
+    private static final int OUTSIDE_Y = 132;
     private static final int OUTSIDE_WIDTH = 96;
 
     private static final int SEAT_START_X = 150;
-    private static final int SEAT_START_Y = 140;
+    private static final int SEAT_START_Y = 132;
     private static final int SEAT_SIZE = 16;
     private static final int SEAT_SPACING = 8;
 
@@ -73,7 +73,7 @@ public class WaitingRoomView {
         }
         int x = OUTSIDE_X;
         int y = OUTSIDE_Y;
-        int perColumn = 5; // vertical slots before wrapping
+        int perColumn = 3; // vertical slots before wrapping (panel was made shorter)
         for (int i = 0; i < model.outsideQueue.size(); i++) {
             int patientId = model.outsideQueue.get(i);
             int col = i / perColumn;
@@ -108,7 +108,7 @@ public class WaitingRoomView {
 
             // Occupant sprite sits above chair
             if (occupied) {
-                BufferedImage patientSprite = SpriteAtlas.get("patient_seated");
+                BufferedImage patientSprite = SpriteAtlas.get("patient_seated", animFrame());
                 SpriteRenderer.draw(g, patientSprite, x, y - 12);
             }
 
@@ -123,5 +123,10 @@ public class WaitingRoomView {
             if (s == GuiModel.SeatState.OCCUPIED) count++;
         }
         return count;
+    }
+
+    /** 2-frame idle cycle shared by seated patients. */
+    private static int animFrame() {
+        return (int) ((System.currentTimeMillis() / 250) % 2);
     }
 }

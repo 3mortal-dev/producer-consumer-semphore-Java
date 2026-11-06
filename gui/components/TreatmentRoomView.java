@@ -20,7 +20,7 @@ public class TreatmentRoomView {
     private static final int ROOM_HEIGHT = 96;
     private static final int ROOM1_X = 24;
     private static final int ROOM_GAP = 24;
-    private static final int ROOM_Y = 296;
+    private static final int ROOM_Y = 500;
 
     public TreatmentRoomView(PixelCanvas canvas) {
         this.canvas = canvas;
@@ -73,7 +73,7 @@ public class TreatmentRoomView {
 
         // Patient lying + doctor treating when occupied
         if (occupied) {
-            BufferedImage docSprite = SpriteAtlas.get("doctor_treating");
+            BufferedImage docSprite = SpriteAtlas.get("doctor_treating", animFrame());
             SpriteRenderer.draw(g, docSprite, bedX + 20, bedY - 14);
 
             if (patientId > 0) {
@@ -91,5 +91,10 @@ public class TreatmentRoomView {
             ? SpriteAtlas.get("door_open")
             : SpriteAtlas.get("door_closed");
         SpriteRenderer.draw(g, doorSprite, doorX, doorY);
+    }
+
+    /** 2-frame treatment cycle for the doctor. */
+    private static int animFrame() {
+        return (int) ((System.currentTimeMillis() / 250) % 2);
     }
 }

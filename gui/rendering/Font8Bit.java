@@ -12,9 +12,28 @@ import java.io.InputStream;
  * Loads TTF from the classpath, then from the source tree as a fallback.
  */
 public final class Font8Bit {
+    /** In-program text style. PIXEL is the retro arcade face; READABLE is a plain
+     *  monospaced face for the same layout when the pixel face is hard to read. */
+    public enum FontMode { PIXEL, READABLE }
+
+    private static volatile FontMode mode = FontMode.PIXEL;
+    private static final java.util.Map<Integer, Font> READABLE_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+
     private static Font baseFont;
     private static final String FONT_RESOURCE = "/fonts/PressStart2P-Regular.ttf";
     private static final String FONT_FILE = "resources/fonts/PressStart2P-Regular.ttf";
+
+    public static void setMode(FontMode newMode) {
+        mode = newMode == null ? FontMode.PIXEL : newMode;
+    }
+
+    public static FontMode getMode() {
+        return mode;
+    }
+
+    public static boolean isReadable() {
+        return mode == FontMode.READABLE;
+    }
 
     static {
         baseFont = loadFont();
@@ -49,8 +68,15 @@ public final class Font8Bit {
 
     /**
      * Get font at specified pixel size (will be scaled by render scale).
+     * In READABLE mode the same call sites get a larger plain monospaced face,
+     * so layouts that measure with {@link #stringWidth} stay consistent.
      */
     public static Font get(int pixelSize) {
+        if (mode == FontMode.READABLE) {
+            int size = pixelSize <= 6 ? 10 : pixelSize <= 8 ? 11 : pixelSize + 2;
+            return READABLE_CACHE.computeIfAbsent(size,
+                    s -> new Font(java.awt.Font.MONOSPACED, java.awt.Font.PLAIN, s));
+        }
         return baseFont.deriveFont(Font.PLAIN, pixelSize);
     }
 

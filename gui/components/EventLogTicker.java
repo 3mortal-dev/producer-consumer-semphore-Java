@@ -16,7 +16,7 @@ public class EventLogTicker {
     private final PixelCanvas canvas;
 
     private static final int PANEL_X = 16;
-    private static final int PANEL_Y = 52;
+    private static final int PANEL_Y = 44;
     private static final int PANEL_W = 992;
     private static final int PANEL_H = 44;
     private static final int LINES = 3;
