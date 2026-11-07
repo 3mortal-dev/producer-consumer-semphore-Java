@@ -10,9 +10,11 @@ TA: Andro | Group: S7
 | 2   | NourEldin     | 20240639 |
 | 3   | Youssef Saleh | 20240694 |
 
-This is a Java simulation of a small emergency room. Patients show up, sit in a waiting room with a limited number of seats, and doctors pick them up one by one. There are only two treatment rooms, so doctors sometimes have to give up and send a patient back. All the thread coordination is done with a Semaphore class we wrote ourselves, no `java.util.concurrent`.
+This is a Java simulation of a small emergency room. Patients show up, sit in a waiting room with a limited number of seats, and doctors pick them up one by one. There are only two treatment rooms, so doctors sometimes have to give up and send a patient back. All the simulation's thread coordination is done with a Semaphore class we wrote ourselves, no `java.util.concurrent`. (The optional GUI event bus uses `java.util.concurrent` collections only to hand immutable events to Swing; no simulation logic relies on them.)
 
 ## Running it
+
+### Console mode
 
 ```
 cd src
@@ -22,6 +24,86 @@ java Hospital
 
 It asks for three numbers: waiting room capacity, number of doctors, number of patients. Then it just prints what happens. When every patient has been treated you get "All patients have been treated." and the program exits on its own.
 
+### Isometric game mode (default)
+
+From the project root:
+
+```
+javac -Xlint:none -d out $(find src gui -name '*.java')
+java -cp out:resources gui.Main
+```
+
+This launches the 8-bit isometric 2.5D hospital game (`gui/game/`): an in-canvas
+title screen (capacity 1-60, doctors 1-12, patients 1-99, speed 0.5x-4x), then one
+shared isometric world with three camera views — `[WAITING]`, `[TREATMENT]`
+(two beds with IV drips and heart monitors), and `[FULL FLOOR]` — plus a top
+HUD with live `PATS / DOCS / QUEUE / BEDS / TREATED` stats, an animated
+glass entrance door, and always-visible `P#`/`D#` ID tags. Drag to pan, mouse wheel
+to zoom, `Tab`/`1-3` switch views, `Space` pauses (the backend keeps running),
+`T` toggles the one-line event strip, `R` resets the camera, and `Enter` on the
+completion overlay returns to the title screen. All sprites are procedural
+`Graphics2D` art; there are no external images.
+
+Two display settings are selectable on the title screen (chips at the bottom) and
+also in-game with the keys shown in the bottom strip:
+
+| Setting | Choices | Keys |
+|---|---|---|
+| **FONT** | `PIXEL` (Press Start 2P, minimum size 8) or `READABLE` (plain monospaced) | `F` |
+| **PACING** | `OFF` (instant, original), `DELAY` (events spaced out), `STEP` (one event per keypress) | `V`, then `N` to step |
+| **DELAY** | 0.3s / 0.7s / 1.2s / 2.0s between events in `DELAY` mode | `D` |
+
+`DELAY` and `STEP` are purely visual: `EventPlaybackQueue` sits between the event
+bridge and the world model, so a burst of arrivals appears as a readable sequence
+and the bottom strip shows the backlog (`DELAY 0.7S QUEUED 67`). The backend
+simulation is untouched and keeps running underneath, pause freezes the playback
+clock, and completion is only shown once the queue has drained.
+
+### Bedside choreography
+
+The backend room permit and the physical bed are deliberately different things
+in the game. When treatment ends on the backend, the doctor stays at the bedside
+(`HOLDING_BEDSIDE`) until the patient actually gets up and leaves the bed; only
+then does he return to his station (or fetch his next patient). If the next
+patient claims the bed while the previous one is still recovering on it, the new
+pair waits at staging (`BedSlot.pendingPatientId`) and is promoted onto the bed
+when it vacates — no sprite teleporting or eviction. Similarly, a patient sent
+back after a failed room attempt walks straight back to a chair (or the outside
+queue when full) instead of detouring via the entrance intake. All of this is
+cosmetic, in `WorldReducer`/`WorldState`; backend concurrency is unchanged.
+
+### Legacy 8-bit GUI mode
+
+```
+java -cp out:resources gui.Main --legacy
+```
+
+This launches the original dashboard-style GUI (`gui.HospitalGUI`). It is kept
+unchanged and shares the same backend and event bus.
+
+The font is loaded from `resources/fonts/` automatically (classpath resource, with a
+filesystem fallback), so running from the project root works either way.
+
+The GUI gives you the same three inputs plus:
+
+| Control | Meaning |
+|---|---|
+| **START** | Resets the board and runs a fresh simulation |
+| **PAUSE / RESUME** | Freezes the GUI only; the backend keeps running |
+| **0.5x / 1x / 2x / 4x** | Real speed scaling: `Thread.sleep` values in `Doctor` and the patient arrival gap in `Hospital` are divided by this factor |
+
+While it runs you can watch the waiting-room seats, the outside queue, both treatment
+rooms, each doctor's state, live stats, and a scrolling event ticker. Between the
+waiting room and the treatment rooms there is an animated **hospital floor** tile map:
+patients walk in from the side entrance to the waiting room, doctors cross the
+corridor into a treatment room, and treated patients walk back out. Sprites face the
+direction they travel (front, left, or right) with a two-frame walk cycle; left-facing
+frames are mirrored from the right-facing art. Seated patients, working doctors, and
+monitors also animate with a two-frame idle loop.
+
+A stock `.ttf` called *Press Start 2P* provides the arcade font; every sprite and tile
+is drawn procedurally with `Graphics2D` (no image files).
+
 ## What is in the folder
 
 ```
@@ -29,6 +111,8 @@ README.md
 TODO.md
 A1.pdf
 sample-output.txt
+resources/
+  fonts/               PressStart2P-Regular.ttf (8-bit arcade font)
 src/
   Hospital.java        main(), reads input, starts everything
   Patient.java         one thread per patient
@@ -36,7 +120,78 @@ src/
   WaitingRoom.java     the bounded buffer (seats)
   TreatmentRooms.java  the 2 rooms
   Semaphore.java       our own semaphore
+  SimulationConfig.java live speed multiplier shared with the GUI
+  EventLogger.java     posts simulation events to the GUI broadcaster
+gui/
+  Main.java            default launcher: isometric game, or --legacy dashboard GUI
+  HospitalGUI.java     JFrame, bootstraps the 8-bit view (legacy GUI)
+  PixelCanvas.java     60-ish FPS double-buffered renderer
+  game/                isometric 2.5D game (default GUI)
+    GameCanvas.java    30 FPS frame loop, input, event drain, 640x360 logical canvas
+    GameSession.java   background simulation lifecycle (never touches the EDT)
+    GameEventBridge.java lock-free backend -> EDT event queue
+    TitleScreen.java   in-canvas start screen with editable fields
+    iso/               2:1 isometric projection
+    scene/             camera presets, tween, pan/zoom
+    world/             EDT-confined world state, reducer, slots, routing
+    render/            procedural sprite bank, world renderer, HUD renderer
+  GuiModel.java        immutable snapshot of the board for rendering
+  GuiEventListener.java EDT bridge (SwingUtilities.invokeLater)
+  events/              immutable event records + broadcaster
+  animation/           Walker: waypoint pathfinder for floor characters
+  rendering/           16-color palette, procedural sprites, tile map, font
+  components/          waiting room, hospital floor, treatment rooms, doctor bar, ticker, controls
 ```
+
+## The 8-bit GUI layer
+
+The GUI never touches a semaphore or blocks a simulation thread. The backend keeps
+printing the same events it always did, but now also calls `EventLogger`, which posts
+an immutable event to `SimulationEventBroadcaster`. That broadcaster runs on the
+simulation threads, so it only enqueues and fans out; `GuiEventListener` hops to the
+Swing Event Dispatch Thread with `SwingUtilities.invokeLater` and applies the event to
+an immutable `GuiModel`. `PixelCanvas` then repaints from that snapshot.
+
+This means:
+
+- Semaphores, the waiting-room monitor, and `join()`/`interrupt()` are untouched.
+- The EDT never calls `acquire()`, `wait()`, `sleep()`, or `join()`.
+- Every visual update is a plain data event, so thread safety is by construction.
+- Pause freezes rendering only; the simulation keeps running underneath.
+- Speed changes are real: `SimulationConfig.getSpeed()` is read by backend threads,
+  so treatment time, the 3-second room timeout, and arrival gaps all scale.
+
+### The floor animation
+
+`gui/rendering/TileMap.java` draws the static floor: a checkerboard of 16-pixel tiles,
+doorways aligned with the waiting room and both treatment rooms, chevrons, signs,
+plants, and a gurney. `gui/animation/Walker.java` is a tiny waypoint follower that
+moves a character along a poly-line at a fixed pixels-per-second rate, choosing a
+front/left/right sprite from the dominant travel axis and a two-frame walk cycle from
+the distance walked.
+
+`gui/components/HospitalFloorView.java` listens to the same simulation events as the
+rest of the GUI. An arrival spawns a patient walking in from the side entrance, an
+assignment spawns a doctor crossing the corridor, a room release sends the doctor back,
+and a departure walks the patient out. Walkers are **purely cosmetic**: they live only
+on the EDT, are capped at 24, and never read or write backend state. Starting a new
+simulation clears them.
+
+## The isometric game layer
+
+The game reuses the exact same backend and event bus; only the presentation changes.
+Simulation threads post immutable events to `SimulationEventBroadcaster`, and instead
+of the legacy listener, `GameEventBridge` puts them on a lock-free queue. `GameCanvas`
+drains that queue once per 33 ms frame on the EDT and applies each event through
+`WorldReducer` to an EDT-confined `WorldState` (movement, seats, beds, and queues
+are cosmetic mirrors of backend state — no backend concurrency or API changes).
+`WorldRenderer` draws the 40x18 isometric floor plan with depth-sorted furniture and
+actors, and `HudRenderer` draws the fixed 640x360 HUD (tabs, stats, speed/pause/event
+controls, bottom message strip, pause/completion overlays). The framebuffer is scaled
+to the window with integer nearest-neighbour scaling, so the art stays crisp at any
+window size. Verified end-to-end (headless + live window): the pipeline treats and
+clears 12/12 patients in the normal case, 40/40 under stress at 16x, and 60/60 in
+the large case, with no NaN positions or bridge backlog.
 
 ## The idea in a few lines
 

@@ -14,15 +14,18 @@ public class Patient extends Thread {
   @Override
   public void run() {
     try {
-      System.out.println(this + " arrived");
+      EventLogger.patientArrived(id);
       while (true) {
         waitingRoom.produce(this);
         treat.acquire(); // wait till a doctor comes
         if (isTreated) {
+          EventLogger.patientTreatmentFinished(id);
           break;
+        } else {
+          EventLogger.patientSentBack(id);
         }
       }
-      System.out.println(this + " left");
+      EventLogger.patientLeft(id);
     } catch (Exception e) {
       Thread.currentThread().interrupt();
     }

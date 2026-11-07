@@ -21,12 +21,11 @@ public class WaitingRoom {
   public void produce(Patient p) throws InterruptedException{
     // patient try to enter the room
     if (!empty.tryAcquire(0)) {  // if the room is full
-      System.out.println("The waiting room is full");
-      System.out.println(p + " is waiting outside for an avilable seat");
+      EventLogger.patientWaitingOutside(p.getPId());
       empty.acquire();  
       }
     this.addPatient(p);
-    System.out.println(p + " entered the waiting room");
+    EventLogger.patientEnteredWaitingRoom(p.getPId());
     full.release(); // notify the doctors that a patient has come
   }
 
